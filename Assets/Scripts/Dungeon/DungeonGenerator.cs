@@ -34,7 +34,7 @@ public class RogueDungeon3D : MonoBehaviour
     [Tooltip("Lower values create windier paths with more dead ends. Higher values create loops and networks.")]
     public float connectionDensity = 0.5f;
 
-    // The 2D grid matrix: 0 = Wall, 1 = Floor, 2 = Door
+    // The 2D grid matrix: 0 = Wall, 1 = Floor, 2 = Door, 3 = Unchangeable Floor
     private int[,] mapData;
 
     // A master list holding structural data for all generated rooms
@@ -64,7 +64,7 @@ public class RogueDungeon3D : MonoBehaviour
         public Room Find(Room room)
         {
             if (parent[room] == room) return room;
-            return parent[room] = Find(parent[room]); // Path compression
+            parent[room] = Find(parent[room]); // Path compression
             return parent[room];
         }
 
@@ -143,7 +143,7 @@ public class RogueDungeon3D : MonoBehaviour
                 {
                     for (int j = y; j < endY; j++)
                     {
-                        mapData[i, j] = 1;
+                        mapData[i, j] = 3;
                     }
                 }
             }
@@ -252,8 +252,11 @@ public class RogueDungeon3D : MonoBehaviour
     {
         for (int x = Mathf.Min(x1, x2); x <= Mathf.Max(x1, x2); x++)
         {
-            CheckAndCarveDoor(x, y);
-            mapData[x, y] = 1; // Mark as floor path
+            if (mapData[x, y] != 3)
+            {
+                mapData[x, y] = 1; // Mark as floor path
+                CheckAndCarveDoor(x, y);
+            }
         }
     }
 
@@ -262,8 +265,11 @@ public class RogueDungeon3D : MonoBehaviour
     {
         for (int y = Mathf.Min(y1, y2); y <= Mathf.Max(y1, y2); y++)
         {
-            CheckAndCarveDoor(x, y);
-            mapData[x, y] = 1; // Mark as floor path
+            if (mapData[x, y] != 3)
+            {
+                mapData[x, y] = 1; // Mark as floor path
+                CheckAndCarveDoor(x, y);
+            }
         }
     }
 
@@ -299,6 +305,10 @@ public class RogueDungeon3D : MonoBehaviour
                 {
                     if (doorPrefab) spawnedTile = Instantiate(doorPrefab, position, Quaternion.identity);
                 }
+                else if (mapData[x, y] == 3) // Forced Floor
+                {
+                    if (floorPrefab) spawnedTile = Instantiate(floorPrefab, position, Quaternion.identity);
+                }
                 else // Wall Tile (Value 0)
                 {
                     // Raise structural walls up slightly on the Y-Axis so they sit flush over the floor plane
@@ -315,10 +325,3 @@ public class RogueDungeon3D : MonoBehaviour
         }
     }
 }
-
-
-// ==========================================
-// STEP 2: CONNECT ROOMS WITHOUT ISOLATION
-// ==========================================
-
-
